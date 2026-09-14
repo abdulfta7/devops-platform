@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.env
+platform.db
+platform.db-shm
+platform.db-wal
+uploads/*
+.git
+.gitignore
+README.md
+Dockerfile
+Dockerfile.dev
+__tests__
+coverage

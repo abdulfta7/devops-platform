@@ -1,0 +1,9 @@
+backend
+node_modules
+.git
+.env
+.env.local
+.env.production
+uploads
+*.db
+platform.db

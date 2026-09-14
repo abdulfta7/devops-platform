@@ -390,9 +390,11 @@ class Database {
 
 const db = new Database();
 
-// Initialize and seed database
+// Initialize and seed database (but don't block startup)
 initializeDatabase().then(() => {
   seedDatabase();
-}).catch(console.error);
+}).catch(err => {
+  console.error('Database initialization error:', err);
+});
 
 module.exports = db;

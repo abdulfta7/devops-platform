@@ -8,13 +8,13 @@ const path = require('path');
 const fs = require('fs');
 
 // Generate certificate
-router.post('/course/:courseId', authenticate, (req, res) => {
+router.post('/course/:courseId', authenticate, async (req, res) => {
   const { courseId } = req.params;
   const userId = req.user.id;
 
   // Check if user completed the course (all videos watched)
-  const courseVideos = db.prepare('SELECT id FROM videos WHERE course_id = ?').all(courseId);
-  const watchedVideos = db.prepare(`
+  const courseVideos = await db.prepare('SELECT id FROM videos WHERE course_id = ?').all(courseId);
+  const watchedVideos = await db.prepare(`
     SELECT v.id
     FROM videos v
     JOIN video_progress vp ON v.id = vp.video_id
@@ -26,14 +26,14 @@ router.post('/course/:courseId', authenticate, (req, res) => {
   }
 
   // Check if certificate already exists
-  const existing = db.prepare('SELECT * FROM certificates WHERE user_id = ? AND course_id = ?').get(userId, courseId);
+  const existing = await db.prepare('SELECT * FROM certificates WHERE user_id = ? AND course_id = ?').get(userId, courseId);
   if (existing) {
     return res.json(existing);
   }
 
   // Get course and user info
-  const course = db.prepare('SELECT title FROM courses WHERE id = ?').get(courseId);
-  const user = db.prepare('SELECT name FROM users WHERE id = ?').get(userId);
+  const course = await db.prepare('SELECT title FROM courses WHERE id = ?').get(courseId);
+  const user = await db.prepare('SELECT name FROM users WHERE id = ?').get(userId);
 
   if (!course || !user) {
     return res.status(404).json({ error: 'Course or user not found' });
@@ -90,19 +90,19 @@ router.post('/course/:courseId', authenticate, (req, res) => {
 
   // Save certificate record
   const certificateUrl = `/uploads/certificate_${certId}.pdf`;
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO certificates (id, user_id, course_id, certificate_url)
     VALUES (?, ?, ?, ?)
   `).run(certId, userId, courseId, certificateUrl);
 
-  const certificate = db.prepare('SELECT * FROM certificates WHERE id = ?').get(certId);
+  const certificate = await db.prepare('SELECT * FROM certificates WHERE id = ?').get(certId);
   res.json(certificate);
 });
 
 // Get user certificates
-router.get('/my-certificates', authenticate, (req, res) => {
+router.get('/my-certificates', authenticate, async (req, res) => {
   const userId = req.user.id;
-  const certificates = db.prepare(`
+  const certificates = await db.prepare(`
     SELECT c.*, co.title as course_title, u.name as user_name
     FROM certificates c
     JOIN courses co ON c.course_id = co.id
@@ -115,9 +115,9 @@ router.get('/my-certificates', authenticate, (req, res) => {
 });
 
 // Get certificate by ID
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
-  const certificate = db.prepare(`
+  const certificate = await db.prepare(`
     SELECT c.*, co.title as course_title, u.name as user_name
     FROM certificates c
     JOIN courses co ON c.course_id = co.id

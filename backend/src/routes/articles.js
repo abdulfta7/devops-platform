@@ -10,7 +10,7 @@ const { storage } = require('../config/cloudinary');
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Get all published articles
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { category, tag } = req.query;
   let query = `
     SELECT a.*, u.name as author_name, u.avatar as author_avatar,
@@ -36,13 +36,13 @@ router.get('/', (req, res) => {
   
   query += ' GROUP BY a.id ORDER BY a.created_at DESC';
   
-  const articles = db.prepare(query).all(...params);
+  const articles = await db.prepare(query).all(...params);
   res.json(articles);
 });
 
 // Get single article by ID
-router.get('/:id', (req, res) => {
-  const article = db.prepare(`
+router.get('/:id', async (req, res) => {
+  const article = await db.prepare(`
     SELECT a.*, u.name as author_name, u.avatar as author_avatar,
            COUNT(DISTINCT al.id) as likes_count,
            COUNT(DISTINCT ac.id) as comments_count
@@ -57,10 +57,10 @@ router.get('/:id', (req, res) => {
   if (!article) return res.status(404).json({ error: 'Article not found' });
   
   // Increment view count
-  db.prepare('UPDATE articles SET views = views + 1 WHERE id = ?').run(req.params.id);
+  await db.prepare('UPDATE articles SET views = views + 1 WHERE id = ?').run(req.params.id);
   
   // Get comments for this article
-  const comments = db.prepare(`
+  const comments = await db.prepare(`
     SELECT ac.*, u.name as author_name, u.avatar as author_avatar
     FROM article_comments ac
     LEFT JOIN users u ON u.id = ac.user_id
@@ -69,8 +69,8 @@ router.get('/:id', (req, res) => {
   `).all(req.params.id);
   
   // Get replies for each comment
-  const commentsWithReplies = comments.map(comment => {
-    const replies = db.prepare(`
+  const commentsWithReplies = await Promise.all(comments.map(async comment => {
+    const replies = await db.prepare(`
       SELECT ac.*, u.name as author_name, u.avatar as author_avatar
       FROM article_comments ac
       LEFT JOIN users u ON u.id = ac.user_id
@@ -78,7 +78,7 @@ router.get('/:id', (req, res) => {
       ORDER BY ac.created_at ASC
     `).all(comment.id);
     return { ...comment, replies };
-  });
+  }));
   
   // Check if current user liked this article
   let userLiked = false;
@@ -88,7 +88,7 @@ router.get('/:id', (req, res) => {
       const jwt = require('jsonwebtoken');
       const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const like = db.prepare('SELECT id FROM article_likes WHERE article_id = ? AND user_id = ?').get(req.params.id, decoded.id);
+      const like = await db.prepare('SELECT id FROM article_likes WHERE article_id = ? AND user_id = ?').get(req.params.id, decoded.id);
       userLiked = !!like;
     } catch (err) {
       // Token invalid, ignore
@@ -99,7 +99,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new article
-router.post('/', authenticate, upload.single('image'), (req, res) => {
+router.post('/', authenticate, upload.single('image'), async (req, res) => {
   try {
     let { title, slug, content, excerpt, tags, category } = req.body;
     const id = uuidv4();
@@ -116,10 +116,10 @@ router.post('/', authenticate, upload.single('image'), (req, res) => {
     let cover_image = req.file ? req.file.path : null;
     
     // Check if slug already exists, if so append random
-    let existing = db.prepare('SELECT id FROM articles WHERE slug = ?').get(slug);
+    let existing = await db.prepare('SELECT id FROM articles WHERE slug = ?').get(slug);
     if (existing) slug = slug + '-' + id.substring(0,4);
     
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO articles (id, user_id, title, slug, content, excerpt, cover_image, tags, category, is_published)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, req.user.id, title, slug, content, excerpt || '', cover_image, tags || '', category || 'general', 1);
@@ -132,8 +132,8 @@ router.post('/', authenticate, upload.single('image'), (req, res) => {
 });
 
 // Update article
-router.put('/:id', authenticate, (req, res) => {
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
+router.put('/:id', authenticate, async (req, res) => {
+  const article = await db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
   if (!article) return res.status(404).json({ error: 'Article not found' });
   
   // Only author or admin can update
@@ -143,7 +143,7 @@ router.put('/:id', authenticate, (req, res) => {
   
   const { title, content, excerpt, cover_image, tags, category, is_published } = req.body;
   
-  db.prepare(`
+  await db.prepare(`
     UPDATE articles 
     SET title = ?, content = ?, excerpt = ?, cover_image = ?, tags = ?, category = ?, is_published = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
@@ -153,8 +153,8 @@ router.put('/:id', authenticate, (req, res) => {
 });
 
 // Delete article
-router.delete('/:id', authenticate, (req, res) => {
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
+router.delete('/:id', authenticate, async (req, res) => {
+  const article = await db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
   if (!article) return res.status(404).json({ error: 'Article not found' });
   
   // Only author or admin can delete
@@ -162,42 +162,42 @@ router.delete('/:id', authenticate, (req, res) => {
     return res.status(403).json({ error: 'Not authorized' });
   }
   
-  db.prepare('DELETE FROM articles WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM articles WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
 // Like/Unlike article
-router.post('/:id/like', authenticate, (req, res) => {
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
+router.post('/:id/like', authenticate, async (req, res) => {
+  const article = await db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
   if (!article) return res.status(404).json({ error: 'Article not found' });
   
-  const existingLike = db.prepare('SELECT id FROM article_likes WHERE article_id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  const existingLike = await db.prepare('SELECT id FROM article_likes WHERE article_id = ? AND user_id = ?').get(req.params.id, req.user.id);
   
   if (existingLike) {
     // Unlike
-    db.prepare('DELETE FROM article_likes WHERE article_id = ? AND user_id = ?').run(req.params.id, req.user.id);
+    await db.prepare('DELETE FROM article_likes WHERE article_id = ? AND user_id = ?').run(req.params.id, req.user.id);
     res.json({ liked: false });
   } else {
     // Like
     const id = uuidv4();
-    db.prepare('INSERT INTO article_likes (id, article_id, user_id) VALUES (?, ?, ?)').run(id, req.params.id, req.user.id);
+    await db.prepare('INSERT INTO article_likes (id, article_id, user_id) VALUES (?, ?, ?)').run(id, req.params.id, req.user.id);
     res.json({ liked: true });
   }
 });
 
 // Add comment to article
-router.post('/:id/comments', authenticate, (req, res) => {
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
+router.post('/:id/comments', authenticate, async (req, res) => {
+  const article = await db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
   if (!article) return res.status(404).json({ error: 'Article not found' });
   
   const { content, parent_id } = req.body;
   const id = uuidv4();
   
-  db.prepare('INSERT INTO article_comments (id, article_id, user_id, content, parent_id) VALUES (?, ?, ?, ?, ?)')
+  await db.prepare('INSERT INTO article_comments (id, article_id, user_id, content, parent_id) VALUES (?, ?, ?, ?, ?)')
     .run(id, req.params.id, req.user.id, content, parent_id || null);
   
   // Get the created comment with author info
-  const comment = db.prepare(`
+  const comment = await db.prepare(`
     SELECT ac.*, u.name as author_name, u.avatar as author_avatar
     FROM article_comments ac
     LEFT JOIN users u ON u.id = ac.user_id
@@ -208,8 +208,8 @@ router.post('/:id/comments', authenticate, (req, res) => {
 });
 
 // Update comment
-router.put('/comments/:commentId', authenticate, (req, res) => {
-  const comment = db.prepare('SELECT * FROM article_comments WHERE id = ?').get(req.params.commentId);
+router.put('/comments/:commentId', authenticate, async (req, res) => {
+  const comment = await db.prepare('SELECT * FROM article_comments WHERE id = ?').get(req.params.commentId);
   if (!comment) return res.status(404).json({ error: 'Comment not found' });
   
   // Only author can update
@@ -218,15 +218,15 @@ router.put('/comments/:commentId', authenticate, (req, res) => {
   }
   
   const { content } = req.body;
-  db.prepare('UPDATE article_comments SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+  await db.prepare('UPDATE article_comments SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
     .run(content, req.params.commentId);
   
   res.json({ success: true });
 });
 
 // Delete comment
-router.delete('/comments/:commentId', authenticate, (req, res) => {
-  const comment = db.prepare('SELECT * FROM article_comments WHERE id = ?').get(req.params.commentId);
+router.delete('/comments/:commentId', authenticate, async (req, res) => {
+  const comment = await db.prepare('SELECT * FROM article_comments WHERE id = ?').get(req.params.commentId);
   if (!comment) return res.status(404).json({ error: 'Comment not found' });
   
   // Only author or admin can delete
@@ -234,27 +234,27 @@ router.delete('/comments/:commentId', authenticate, (req, res) => {
     return res.status(403).json({ error: 'Not authorized' });
   }
   
-  db.prepare('DELETE FROM article_comments WHERE id = ?').run(req.params.commentId);
+  await db.prepare('DELETE FROM article_comments WHERE id = ?').run(req.params.commentId);
   res.json({ success: true });
 });
 
 // Share article
-router.post('/:id/share', authenticate, (req, res) => {
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
+router.post('/:id/share', authenticate, async (req, res) => {
+  const article = await db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
   if (!article) return res.status(404).json({ error: 'Article not found' });
   
   const { platform } = req.body;
   const id = uuidv4();
   
-  db.prepare('INSERT INTO article_shares (id, article_id, user_id, platform) VALUES (?, ?, ?, ?)')
+  await db.prepare('INSERT INTO article_shares (id, article_id, user_id, platform) VALUES (?, ?, ?, ?)')
     .run(id, req.params.id, req.user.id, platform);
   
   res.json({ success: true });
 });
 
 // Get user's articles
-router.get('/user/my-articles', authenticate, (req, res) => {
-  const articles = db.prepare(`
+router.get('/user/my-articles', authenticate, async (req, res) => {
+  const articles = await db.prepare(`
     SELECT a.*, COUNT(DISTINCT al.id) as likes_count, COUNT(DISTINCT ac.id) as comments_count
     FROM articles a
     LEFT JOIN article_likes al ON al.article_id = a.id

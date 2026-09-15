@@ -5,9 +5,9 @@ const db = require('../database');
 const { authenticate } = require('../middleware/auth');
 
 // Get user notifications
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   const userId = req.user.id;
-  const notifications = db.prepare(`
+  const notifications = await db.prepare(`
     SELECT * FROM notifications
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -15,11 +15,11 @@ router.get('/', authenticate, (req, res) => {
   `).all(userId);
 
   // Count unread
-  const unreadCount = db.prepare(`
+  const unreadCount = (await db.prepare(`
     SELECT COUNT(*) as count
     FROM notifications
     WHERE user_id = ? AND is_read = 0
-  `).get(userId).count;
+  `).get(userId)).count;
 
   res.json({
     notifications,
@@ -28,58 +28,58 @@ router.get('/', authenticate, (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', authenticate, (req, res) => {
+router.put('/:id/read', authenticate, async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const notification = db.prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ?').get(id, userId);
+  const notification = await db.prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ?').get(id, userId);
   if (!notification) {
     return res.status(404).json({ error: 'Notification not found' });
   }
 
-  db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id);
+  await db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id);
   res.json({ success: true });
 });
 
 // Mark all as read
-router.put('/read-all', authenticate, (req, res) => {
+router.put('/read-all', authenticate, async (req, res) => {
   const userId = req.user.id;
-  db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(userId);
+  await db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(userId);
   res.json({ success: true });
 });
 
 // Delete notification
-router.delete('/:id', authenticate, (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const notification = db.prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ?').get(id, userId);
+  const notification = await db.prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ?').get(id, userId);
   if (!notification) {
     return res.status(404).json({ error: 'Notification not found' });
   }
 
-  db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
+  await db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
   res.json({ success: true });
 });
 
 // Create notification (admin only)
-router.post('/', authenticate, (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   const { userId, title, message, type } = req.body;
   const adminId = req.user.id;
 
   // Check if admin
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(adminId);
+  const user = await db.prepare('SELECT role FROM users WHERE id = ?').get(adminId);
   if (user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin only' });
   }
 
   const id = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO notifications (id, user_id, title, message, type)
     VALUES (?, ?, ?, ?, ?)
   `).run(id, userId, title, message, type || 'info');
 
-  const notification = db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
+  const notification = await db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
   res.json(notification);
 });
 

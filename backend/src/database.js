@@ -1,16 +1,27 @@
 const { Pool } = require('pg');
 
-// PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/devops_platform',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// PostgreSQL connection pool for serverless environment
+let pool;
+
+const getPool = () => {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/devops_platform',
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      max: 1, // For serverless, limit to 1 connection per function
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    });
+  }
+  return pool;
+};
 
 // Helper function to run queries
 const query = async (text, params) => {
   const start = Date.now();
   try {
-    const res = await pool.query(text, params);
+    const currentPool = getPool();
+    const res = await currentPool.query(text, params);
     const duration = Date.now() - start;
     console.log('Executed query', { text, duration, rows: res.rowCount });
     return res;
@@ -385,6 +396,14 @@ class Database {
   pragma(statement) {
     // SQLite pragmas don't apply to PostgreSQL
     console.log('Pragma ignored:', statement);
+  }
+
+  // Clean up connection (for serverless)
+  async close() {
+    if (pool) {
+      await pool.end();
+      pool = null;
+    }
   }
 }
 

@@ -5,8 +5,8 @@ const db = require('../database');
 const { authenticate, isAdmin } = require('../middleware/auth');
 
 // Get all tracks with course count
-router.get('/', (req, res) => {
-  const tracks = db.prepare(`
+router.get('/', async (req, res) => {
+  const tracks = await db.prepare(`
     SELECT t.*, COUNT(c.id) as course_count
     FROM tracks t
     LEFT JOIN courses c ON c.track_id = t.id AND c.is_published = 1
@@ -17,11 +17,11 @@ router.get('/', (req, res) => {
 });
 
 // Get single track with courses
-router.get('/:slug', (req, res) => {
-  const track = db.prepare('SELECT * FROM tracks WHERE slug = ?').get(req.params.slug);
+router.get('/:slug', async (req, res) => {
+  const track = await db.prepare('SELECT * FROM tracks WHERE slug = ?').get(req.params.slug);
   if (!track) return res.status(404).json({ error: 'Track not found' });
 
-  const courses = db.prepare(`
+  const courses = await db.prepare(`
     SELECT * FROM courses WHERE track_id = ? AND is_published = 1 ORDER BY order_num
   `).all(track.id);
 
@@ -29,11 +29,11 @@ router.get('/:slug', (req, res) => {
 });
 
 // Get roadmap for a track
-router.get('/:slug/roadmap', (req, res) => {
-  const track = db.prepare('SELECT * FROM tracks WHERE slug = ?').get(req.params.slug);
+router.get('/:slug/roadmap', async (req, res) => {
+  const track = await db.prepare('SELECT * FROM tracks WHERE slug = ?').get(req.params.slug);
   if (!track) return res.status(404).json({ error: 'Track not found' });
 
-  const steps = db.prepare(`
+  const steps = await db.prepare(`
     SELECT rs.id, rs.track_id, rs.course_id, rs.title, rs.description,
            rs.step_type, rs.level_num, rs.level_title, rs.order_num, rs.is_required,
            c.title as course_title, c.slug as course_slug, c.price, c.is_free,
@@ -48,17 +48,17 @@ router.get('/:slug/roadmap', (req, res) => {
 });
 
 // Admin: Create track
-router.post('/', authenticate, isAdmin, (req, res) => {
+router.post('/', authenticate, isAdmin, async (req, res) => {
   const { title, slug, description, icon, color, order_num } = req.body;
   const id = uuidv4();
-  db.prepare('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, title, slug, description, icon, color, order_num || 0);
+  await db.prepare('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, title, slug, description, icon, color, order_num || 0);
   res.json({ id, title, slug, description, icon, color });
 });
 
 // Admin: Update track
-router.put('/:id', authenticate, isAdmin, (req, res) => {
+router.put('/:id', authenticate, isAdmin, async (req, res) => {
   const { title, description, icon, color, order_num } = req.body;
-  db.prepare('UPDATE tracks SET title=?, description=?, icon=?, color=?, order_num=? WHERE id=?').run(title, description, icon, color, order_num, req.params.id);
+  await db.prepare('UPDATE tracks SET title=?, description=?, icon=?, color=?, order_num=? WHERE id=?').run(title, description, icon, color, order_num, req.params.id);
   res.json({ success: true });
 });
 

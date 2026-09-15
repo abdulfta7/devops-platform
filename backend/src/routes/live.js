@@ -43,8 +43,8 @@ db.exec(`
 // ── PUBLIC ─────────────────────────────────────────────────────────────────
 
 // Get all published live courses
-router.get('/', (req, res) => {
-  const courses = db.prepare(`
+router.get('/', async (req, res) => {
+  const courses = await db.prepare(`
     SELECT lc.*,
            COUNT(lr.id) as reg_count
     FROM live_courses lc
@@ -57,8 +57,8 @@ router.get('/', (req, res) => {
 });
 
 // Get single live course by slug
-router.get('/:slug', (req, res) => {
-  const course = db.prepare(`
+router.get('/:slug', async (req, res) => {
+  const course = await db.prepare(`
     SELECT lc.*, COUNT(lr.id) as reg_count
     FROM live_courses lc
     LEFT JOIN live_registrations lr ON lr.course_id = lc.id
@@ -70,8 +70,8 @@ router.get('/:slug', (req, res) => {
 });
 
 // Register for a live course (public — no login needed)
-router.post('/:slug/register', (req, res) => {
-  const course = db.prepare("SELECT * FROM live_courses WHERE slug = ? AND is_published = 1").get(req.params.slug);
+router.post('/:slug/register', async (req, res) => {
+  const course = await db.prepare("SELECT * FROM live_courses WHERE slug = ? AND is_published = 1").get(req.params.slug);
   if (!course)        return res.status(404).json({ error: 'Course not found' });
   if (!course.is_open) return res.status(400).json({ error: 'Registration is closed for this course' });
 
@@ -81,11 +81,11 @@ router.post('/:slug/register', (req, res) => {
   if (!phone?.trim()) return res.status(400).json({ error: 'Phone is required' });
 
   // Prevent duplicate registration by email
-  const exists = db.prepare("SELECT id FROM live_registrations WHERE course_id = ? AND email = ?").get(course.id, email.trim().toLowerCase());
+  const exists = await db.prepare("SELECT id FROM live_registrations WHERE course_id = ? AND email = ?").get(course.id, email.trim().toLowerCase());
   if (exists) return res.status(400).json({ error: 'This email is already registered for this course' });
 
   const id = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO live_registrations (id, course_id, name, email, phone, age, experience, note)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, course.id, name.trim(), email.trim().toLowerCase(), phone.trim(), age || '', experience || '', note || '');
@@ -96,8 +96,8 @@ router.post('/:slug/register', (req, res) => {
 // ── ADMIN ──────────────────────────────────────────────────────────────────
 
 // Get all live courses (admin — includes unpublished)
-router.get('/admin/all', authenticate, isAdmin, (req, res) => {
-  const courses = db.prepare(`
+router.get('/admin/all', authenticate, isAdmin, async (req, res) => {
+  const courses = await db.prepare(`
     SELECT lc.*,
            COUNT(lr.id) as reg_count,
            SUM(CASE WHEN lr.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count
@@ -110,19 +110,19 @@ router.get('/admin/all', authenticate, isAdmin, (req, res) => {
 });
 
 // Get registrations for a course
-router.get('/admin/:courseId/registrations', authenticate, isAdmin, (req, res) => {
-  const course = db.prepare('SELECT * FROM live_courses WHERE id = ?').get(req.params.courseId);
+router.get('/admin/:courseId/registrations', authenticate, isAdmin, async (req, res) => {
+  const course = await db.prepare('SELECT * FROM live_courses WHERE id = ?').get(req.params.courseId);
   if (!course) return res.status(404).json({ error: 'Course not found' });
-  const regs = db.prepare("SELECT * FROM live_registrations WHERE course_id = ? ORDER BY registered_at DESC").all(req.params.courseId);
+  const regs = await db.prepare("SELECT * FROM live_registrations WHERE course_id = ? ORDER BY registered_at DESC").all(req.params.courseId);
   res.json({ course, registrations: regs });
 });
 
 // Create live course
-router.post('/admin/create', authenticate, isAdmin, (req, res) => {
+router.post('/admin/create', authenticate, isAdmin, async (req, res) => {
   const { title, slug, description, details, instructor, price, currency, start_date, schedule, duration, seats, cover_emoji } = req.body;
   if (!title || !slug) return res.status(400).json({ error: 'Title and slug are required' });
   const id = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO live_courses (id,title,slug,description,details,instructor,price,currency,start_date,schedule,duration,seats,cover_emoji)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(id, title, slug, description||'', details||'', instructor||'', price||0, currency||'EGP', start_date||'', schedule||'', duration||'', seats||0, cover_emoji||'🎓');
@@ -130,9 +130,9 @@ router.post('/admin/create', authenticate, isAdmin, (req, res) => {
 });
 
 // Update live course
-router.put('/admin/:id', authenticate, isAdmin, (req, res) => {
+router.put('/admin/:id', authenticate, isAdmin, async (req, res) => {
   const { title, description, details, instructor, price, currency, start_date, schedule, duration, seats, is_open, is_published, cover_emoji } = req.body;
-  db.prepare(`
+  await db.prepare(`
     UPDATE live_courses
     SET title=?,description=?,details=?,instructor=?,price=?,currency=?,
         start_date=?,schedule=?,duration=?,seats=?,is_open=?,is_published=?,cover_emoji=?
@@ -142,30 +142,30 @@ router.put('/admin/:id', authenticate, isAdmin, (req, res) => {
 });
 
 // Update registration status (confirm / cancel)
-router.put('/admin/registrations/:id', authenticate, isAdmin, (req, res) => {
+router.put('/admin/registrations/:id', authenticate, isAdmin, async (req, res) => {
   const { status } = req.body; // 'confirmed' | 'cancelled' | 'pending'
-  db.prepare("UPDATE live_registrations SET status = ? WHERE id = ?").run(status, req.params.id);
+  await db.prepare("UPDATE live_registrations SET status = ? WHERE id = ?").run(status, req.params.id);
   res.json({ success: true });
 });
 
 // Delete registration
-router.delete('/admin/registrations/:id', authenticate, isAdmin, (req, res) => {
-  db.prepare("DELETE FROM live_registrations WHERE id = ?").run(req.params.id);
+router.delete('/admin/registrations/:id', authenticate, isAdmin, async (req, res) => {
+  await db.prepare("DELETE FROM live_registrations WHERE id = ?").run(req.params.id);
   res.json({ success: true });
 });
 
 // Delete live course
-router.delete('/admin/:id', authenticate, isAdmin, (req, res) => {
-  db.prepare("DELETE FROM live_registrations WHERE course_id = ?").run(req.params.id);
-  db.prepare("DELETE FROM live_courses WHERE id = ?").run(req.params.id);
+router.delete('/admin/:id', authenticate, isAdmin, async (req, res) => {
+  await db.prepare("DELETE FROM live_registrations WHERE course_id = ?").run(req.params.id);
+  await db.prepare("DELETE FROM live_courses WHERE id = ?").run(req.params.id);
   res.json({ success: true });
 });
 
 // Export registrations as CSV
-router.get('/admin/:courseId/export', authenticate, isAdmin, (req, res) => {
-  const course = db.prepare('SELECT * FROM live_courses WHERE id = ?').get(req.params.courseId);
+router.get('/admin/:courseId/export', authenticate, isAdmin, async (req, res) => {
+  const course = await db.prepare('SELECT * FROM live_courses WHERE id = ?').get(req.params.courseId);
   if (!course) return res.status(404).json({ error: 'Not found' });
-  const regs = db.prepare("SELECT * FROM live_registrations WHERE course_id = ? ORDER BY registered_at").all(req.params.courseId);
+  const regs = await db.prepare("SELECT * FROM live_registrations WHERE course_id = ? ORDER BY registered_at").all(req.params.courseId);
 
   const header = 'Name,Email,Phone,Age,Experience,Note,Status,Registered At\n';
   const rows   = regs.map(r =>

@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx webpack serve --open",
-    "build": "./node_modules/.bin/webpack --mode production",
+    "build": "npx webpack-cli --mode production",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -51,7 +51,7 @@
     "jest-environment-jsdom": "^30.5.1",
     "style-loader": "^4.0.0",
     "webpack": "^5.110.3",
-    "webpack-cli": "^7.2.3",
+    "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.2.6"
   }
 }

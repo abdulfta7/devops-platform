@@ -2,9 +2,10 @@ const { Pool } = require('pg');
 
 // PostgreSQL connection pool for serverless environment
 let pool;
+let isPoolClosed = false;
 
 const getPool = () => {
-  if (!pool) {
+  if (!pool || isPoolClosed) {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/devops_platform',
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
@@ -12,6 +13,7 @@ const getPool = () => {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
     });
+    isPoolClosed = false;
   }
   return pool;
 };
@@ -377,20 +379,22 @@ const seedDatabase = async () => {
 // Database helper functions compatible with SQLite API
 class Database {
   async prepare(queryText) {
-    return {
-      get: async (...params) => {
-        const result = await executeQuery(queryText, params);
+    const preparedObject = {
+      queryText: queryText,
+      get: async function(...params) {
+        const result = await executeQuery(this.queryText, params);
         return result.rows[0];
       },
-      all: async (...params) => {
-        const result = await executeQuery(queryText, params);
+      all: async function(...params) {
+        const result = await executeQuery(this.queryText, params);
         return result.rows;
       },
-      run: async (...params) => {
-        const result = await executeQuery(queryText, params);
+      run: async function(...params) {
+        const result = await executeQuery(this.queryText, params);
         return { changes: result.rowCount };
       }
     };
+    return preparedObject;
   }
 
   async exec(sql) {
@@ -404,9 +408,13 @@ class Database {
 
   // Clean up connection (for serverless)
   async close() {
-    if (pool) {
-      await pool.end();
-      pool = null;
+    if (pool && !isPoolClosed) {
+      try {
+        await pool.end();
+        isPoolClosed = true;
+      } catch (err) {
+        console.error('Error closing pool:', err);
+      }
     }
   }
 }

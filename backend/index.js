@@ -20,6 +20,10 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting if forwarded header is present (Vercel)
+    return req.headers['forwarded'] !== undefined;
+  }
 });
 
 // Skip rate limiting in development
@@ -36,6 +40,10 @@ const authLimiter = rateLimit({
   message: 'Too many login attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting if forwarded header is present (Vercel)
+    return req.headers['forwarded'] !== undefined;
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {

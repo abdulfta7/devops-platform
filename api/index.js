@@ -93,16 +93,5 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Wrap the response to close DB connection after response
-  const originalEnd = res.end;
-  let dbClosed = false;
-  res.end = function(...args) {
-    if (!dbClosed) {
-      dbClosed = true;
-      db.close().catch(err => console.error('Error closing DB:', err));
-    }
-    originalEnd.apply(this, args);
-  };
-
   app(req, res);
 };

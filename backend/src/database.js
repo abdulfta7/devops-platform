@@ -380,37 +380,33 @@ const seedDatabase = async () => {
   }
 };
 
-// Database helper functions compatible with SQLite API
-class Database {
-  async prepare(queryText) {
-    const self = this;
-    return {
-      queryText: queryText,
-      get: async function(...params) {
-        const result = await executeQuery(this.queryText, params);
-        return result.rows[0];
-      },
-      all: async function(...params) {
-        const result = await executeQuery(this.queryText, params);
-        return result.rows;
-      },
-      run: async function(...params) {
-        const result = await executeQuery(this.queryText, params);
-        return { changes: result.rowCount };
-      }
-    };
-  }
-
+// Simple PostgreSQL query helpers
+const db = {
+  async get(query, params) {
+    const result = await executeQuery(query, params);
+    return result.rows[0];
+  },
+  async all(query, params) {
+    const result = await executeQuery(query, params);
+    return result.rows;
+  },
+  async run(query, params) {
+    const result = await executeQuery(query, params);
+    return { changes: result.rowCount };
+  },
   async exec(sql) {
     return await executeQuery(sql);
-  }
-
+  },
+  async prepare(queryText) {
+    return {
+      get: async (...params) => await db.get(queryText, params),
+      all: async (...params) => await db.all(queryText, params),
+      run: async (...params) => await db.run(queryText, params)
+    };
+  },
   pragma(statement) {
-    // SQLite pragmas don't apply to PostgreSQL
     console.log('Pragma ignored:', statement);
-  }
-
-  // Clean up connection (for serverless)
+  },
   async close() {
     if (pool && !isPoolClosed) {
       try {
@@ -421,9 +417,7 @@ class Database {
       }
     }
   }
-}
-
-const db = new Database();
+};
 
 // Initialize and seed database (but don't block startup)
 let dbInitialized = false;

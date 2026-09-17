@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const db = require('../database');
+const { executeQuery } = require('../database');
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -10,7 +10,8 @@ const authenticate = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await db.prepare('SELECT id, name, email, phone, role, avatar, is_approved FROM users WHERE id = ?').get(decoded.id);
+    const userResult = await executeQuery('SELECT id, name, email, phone, role, avatar, is_approved FROM users WHERE id = $1', [decoded.id]);
+    const user = userResult.rows[0];
     if (!user) return res.status(401).json({ error: 'User not found' });
     req.user = user;
     next();

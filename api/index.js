@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const db = require('../backend/src/database');
+const { initializeDatabase, seedDatabase } = require('../backend/src/database');
 
 // Import routes
 const authRoutes = require('../backend/src/routes/auth');
@@ -72,6 +72,22 @@ app.use('/api/articles', articlesRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
 
+// Initialize database on startup
+let dbInitialized = false;
+const ensureDbInitialized = async () => {
+  if (!dbInitialized) {
+    try {
+      console.log('Initializing database...');
+      await initializeDatabase();
+      await seedDatabase();
+      dbInitialized = true;
+      console.log('Database initialized successfully');
+    } catch (err) {
+      console.error('Database initialization error:', err);
+    }
+  }
+};
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
@@ -79,6 +95,9 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = async (req, res) => {
+  // Initialize database on first request
+  await ensureDbInitialized();
+
   // Set proper headers for Vercel
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');

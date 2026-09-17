@@ -468,44 +468,66 @@ const seedDatabase = async () => {
 
     console.log('Seeding database...');
 
-    // Insert tracks
-    const devopsId = uuidv4();
-    const cloudId = uuidv4();
-    const sysadminId = uuidv4();
+    // Check if admin user exists
+    const adminExists = await executeQuery('SELECT id FROM users WHERE email = $1', ['admin@devopsplatform.com']);
+    if (adminExists.rows.length === 0) {
+      // Create admin user
+      const adminId = uuidv4();
+      const bcrypt = require('bcryptjs');
+      const adminPassword = bcrypt.hashSync('admin123', 10);
 
-    await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [devopsId, 'DevOps Engineer', 'devops', 'Master CI/CD, Docker, Kubernetes, Jenkins, and modern DevOps practices from zero to hero', '⚙️', '#F59E0B', 1]);
-    await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [cloudId, 'Cloud Engineer', 'cloud', 'Master AWS, Azure, GCP and cloud architecture best practices', '☁️', '#3B82F6', 2]);
-    await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [sysadminId, 'System Administrator', 'sysadmin', 'Master Linux, networking, security and system administration', '🖥️', '#10B981', 3]);
+      await executeQuery('INSERT INTO users (id, name, email, password, role, is_approved, is_verified) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [adminId, 'Admin User', 'admin@devopsplatform.com', adminPassword, 'admin', 1, 1]);
 
-    // Insert sample courses
-    const insertCourse = async (trackId, name, slug, desc, price, free, level, hours, order) => {
-      const cid = uuidv4();
-      await executeQuery('INSERT INTO courses (id, track_id, title, slug, description, price, is_free, level, duration_hours, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-        [cid, trackId, name, slug, desc, price, free, level, hours, order]);
-      return cid;
-    };
+      console.log('Admin user created: admin@devopsplatform.com / admin123');
+    } else {
+      console.log('Admin user already exists');
+    }
 
-    // DevOps courses
-    await insertCourse(devopsId, 'Networking Basics', 'networking-basics', 'TCP/IP, DNS, HTTP, OSI model — core networking for DevOps', 0, 1, 'beginner', 8, 1);
-    await insertCourse(devopsId, 'Linux Fundamentals', 'linux-devops', 'Linux fundamentals, file system, permissions, processes', 0, 1, 'beginner', 10, 2);
-    await insertCourse(devopsId, 'Git Version Control', 'git-devops', 'Version control, branching strategies, Git workflows', 0, 1, 'beginner', 6, 3);
-    await insertCourse(devopsId, 'Bash Scripting', 'bash-scripting', 'Shell scripting, automation with Bash', 39, 0, 'beginner', 8, 4);
-    await insertCourse(devopsId, 'Python for DevOps', 'python-devops', 'Python scripting for automation and DevOps tooling', 49, 0, 'beginner', 12, 5);
+    // Check if tracks exist
+    const tracksCount = await executeQuery('SELECT COUNT(*) as count FROM tracks');
+    if (tracksCount.rows[0].count > 0) {
+      console.log('Tracks already seeded, skipping...');
+    } else {
+      // Insert tracks
+      const devopsId = uuidv4();
+      const cloudId = uuidv4();
+      const sysadminId = uuidv4();
 
-    // Cloud courses
-    await insertCourse(cloudId, 'Cloud Computing Basics', 'cloud-basics', 'Introduction to cloud computing concepts', 0, 1, 'beginner', 6, 1);
-    await insertCourse(cloudId, 'AWS Core Services', 'aws-core', 'EC2, S3, VPC, IAM and more', 69, 0, 'intermediate', 18, 2);
-    await insertCourse(cloudId, 'AWS Solutions Architect', 'aws-architect', 'Design scalable AWS architectures', 99, 0, 'advanced', 25, 3);
+      await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [devopsId, 'DevOps Engineer', 'devops', 'Master CI/CD, Docker, Kubernetes, Jenkins, and modern DevOps practices from zero to hero', '⚙️', '#F59E0B', 1]);
+      await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [cloudId, 'Cloud Engineer', 'cloud', 'Master AWS, Azure, GCP and cloud architecture best practices', '☁️', '#3B82F6', 2]);
+      await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [sysadminId, 'System Administrator', 'sysadmin', 'Master Linux, networking, security and system administration', '🖥️', '#10B981', 3]);
 
-    // System Admin courses
-    await insertCourse(sysadminId, 'Linux System Administration', 'linux-sysadmin', 'Complete Linux system administration guide', 0, 1, 'beginner', 15, 1);
-    await insertCourse(sysadminId, 'Network Security', 'network-security', 'Network security fundamentals and best practices', 59, 0, 'intermediate', 12, 2);
-    await insertCourse(sysadminId, 'Server Management', 'server-management', 'Server deployment and management', 49, 0, 'intermediate', 10, 3);
+      // Insert sample courses
+      const insertCourse = async (trackId, name, slug, desc, price, free, level, hours, order) => {
+        const cid = uuidv4();
+        await executeQuery('INSERT INTO courses (id, track_id, title, slug, description, price, is_free, level, duration_hours, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+          [cid, trackId, name, slug, desc, price, free, level, hours, order]);
+        return cid;
+      };
 
-    console.log('Database seeded successfully');
+      // DevOps courses
+      await insertCourse(devopsId, 'Networking Basics', 'networking-basics', 'TCP/IP, DNS, HTTP, OSI model — core networking for DevOps', 0, 1, 'beginner', 8, 1);
+      await insertCourse(devopsId, 'Linux Fundamentals', 'linux-devops', 'Linux fundamentals, file system, permissions, processes', 0, 1, 'beginner', 10, 2);
+      await insertCourse(devopsId, 'Git Version Control', 'git-devops', 'Version control, branching strategies, Git workflows', 0, 1, 'beginner', 6, 3);
+      await insertCourse(devopsId, 'Bash Scripting', 'bash-scripting', 'Shell scripting, automation with Bash', 39, 0, 'beginner', 8, 4);
+      await insertCourse(devopsId, 'Python for DevOps', 'python-devops', 'Python scripting for automation and DevOps tooling', 49, 0, 'beginner', 12, 5);
+
+      // Cloud courses
+      await insertCourse(cloudId, 'Cloud Computing Basics', 'cloud-basics', 'Introduction to cloud computing concepts', 0, 1, 'beginner', 6, 1);
+      await insertCourse(cloudId, 'AWS Core Services', 'aws-core', 'EC2, S3, VPC, IAM and more', 69, 0, 'intermediate', 18, 2);
+      await insertCourse(cloudId, 'AWS Solutions Architect', 'aws-architect', 'Design scalable AWS architectures', 99, 0, 'advanced', 25, 3);
+
+      // System Admin courses
+      await insertCourse(sysadminId, 'Linux System Administration', 'linux-sysadmin', 'Complete Linux system administration guide', 0, 1, 'beginner', 15, 1);
+      await insertCourse(sysadminId, 'Network Security', 'network-security', 'Network security fundamentals and best practices', 59, 0, 'intermediate', 12, 2);
+      await insertCourse(sysadminId, 'Server Management', 'server-management', 'Server deployment and management', 49, 0, 'intermediate', 10, 3);
+
+      console.log('Database seeded successfully');
+    }
   } catch (error) {
     console.error('Error seeding database:', error);
     throw error;

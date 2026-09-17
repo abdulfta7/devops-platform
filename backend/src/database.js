@@ -372,19 +372,16 @@ class Database {
   async prepare(query) {
     return {
       get: async (...params) => {
-        const result = await this.query(query, params);
+        const result = await query(query, params);
         return result.rows[0];
       },
       all: async (...params) => {
-        const result = await this.query(query, params);
+        const result = await query(query, params);
         return result.rows;
       },
       run: async (...params) => {
-        const result = await this.query(query, params);
+        const result = await query(query, params);
         return { changes: result.rowCount };
-      },
-      query: async (...params) => {
-        return await query(query, params);
       }
     };
   }

@@ -173,9 +173,10 @@ const initializeDatabase = async () => {
       );
     `);
 
-    console.log('Creating videos table...');
-    await executeQuery(`
-      CREATE TABLE IF NOT EXISTS videos (
+    try {
+      console.log('Creating videos table...');
+      await executeQuery(`
+        CREATE TABLE IF NOT EXISTS videos (
         id TEXT PRIMARY KEY,
         course_id TEXT NOT NULL,
         title TEXT NOT NULL,
@@ -188,9 +189,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (course_id) REFERENCES courses(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating videos table:', error.message);
+    }
 
-    console.log('Creating tasks table...');
-    await executeQuery(`
+    try {
+      console.log('Creating tasks table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
         course_id TEXT NOT NULL,
@@ -204,9 +209,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (course_id) REFERENCES courses(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating tasks table:', error.message);
+    }
 
-    console.log('Creating task_submissions table...');
-    await executeQuery(`
+    try {
+      console.log('Creating task_submissions table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS task_submissions (
         id TEXT PRIMARY KEY,
         task_id TEXT NOT NULL,
@@ -220,9 +229,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating task_submissions table:', error.message);
+    }
 
-    console.log('Creating enrollments table...');
-    await executeQuery(`
+    try {
+      console.log('Creating enrollments table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS enrollments (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -238,9 +251,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (course_id) REFERENCES courses(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating enrollments table:', error.message);
+    }
 
-    console.log('Creating video_progress table...');
-    await executeQuery(`
+    try {
+      console.log('Creating video_progress table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS video_progress (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -252,9 +269,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (video_id) REFERENCES videos(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating video_progress table:', error.message);
+    }
 
-    console.log('Creating payments table...');
-    await executeQuery(`
+    try {
+      console.log('Creating payments table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -268,9 +289,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (course_id) REFERENCES courses(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating payments table:', error.message);
+    }
 
-    console.log('Creating reviews table...');
-    await executeQuery(`
+    try {
+      console.log('Creating reviews table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS reviews (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -283,9 +308,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (course_id) REFERENCES courses(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating reviews table:', error.message);
+    }
 
-    console.log('Creating certificates table...');
-    await executeQuery(`
+    try {
+      console.log('Creating certificates table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS certificates (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -297,9 +326,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (course_id) REFERENCES courses(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating certificates table:', error.message);
+    }
 
-    console.log('Creating notifications table...');
-    await executeQuery(`
+    try {
+      console.log('Creating notifications table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -311,9 +344,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating notifications table:', error.message);
+    }
 
-    console.log('Creating discussions table...');
-    await executeQuery(`
+    try {
+      console.log('Creating discussions table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS discussions (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -326,9 +363,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (parent_id) REFERENCES discussions(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating discussions table:', error.message);
+    }
 
-    console.log('Creating articles table...');
-    await executeQuery(`
+    try {
+      console.log('Creating articles table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS articles (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -346,9 +387,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id)
       );
     `);
+    } catch (error) {
+      console.log('Error creating articles table:', error.message);
+    }
 
-    console.log('Creating article_likes table...');
-    await executeQuery(`
+    try {
+      console.log('Creating article_likes table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_likes (
         id TEXT PRIMARY KEY,
         article_id TEXT NOT NULL,
@@ -359,9 +404,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
+    } catch (error) {
+      console.log('Error creating article_likes table:', error.message);
+    }
 
-    console.log('Creating article_comments table...');
-    await executeQuery(`
+    try {
+      console.log('Creating article_comments table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_comments (
         id TEXT PRIMARY KEY,
         article_id TEXT NOT NULL,
@@ -375,9 +424,13 @@ const initializeDatabase = async () => {
         FOREIGN KEY (parent_id) REFERENCES article_comments(id) ON DELETE CASCADE
       );
     `);
+    } catch (error) {
+      console.log('Error creating article_comments table:', error.message);
+    }
 
-    console.log('Creating article_shares table...');
-    await executeQuery(`
+    try {
+      console.log('Creating article_shares table...');
+      await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_shares (
         id TEXT PRIMARY KEY,
         article_id TEXT NOT NULL,
@@ -388,6 +441,9 @@ const initializeDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
+    } catch (error) {
+      console.log('Error creating article_shares table:', error.message);
+    }
 
     console.log('Database schema initialized successfully');
   } catch (error) {

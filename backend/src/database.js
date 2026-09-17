@@ -46,23 +46,82 @@ const executeQuery = async (text, params) => {
 const initializeDatabase = async () => {
   try {
     console.log('Starting database initialization...');
-    // Create tables
-    await executeQuery(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        phone TEXT,
-        role TEXT DEFAULT 'student',
-        avatar TEXT,
-        is_approved INTEGER DEFAULT 0,
-        approved_by TEXT,
-        approved_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
 
+    // Check if users table exists and has the required columns
+    try {
+      const usersTable = await executeQuery(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'users'
+      `);
+
+      if (usersTable.rows.length > 0) {
+        const existingColumns = usersTable.rows.map(row => row.column_name);
+        console.log('Existing users table columns:', existingColumns);
+
+        // Add missing columns if they don't exist
+        const requiredColumns = ['verification_token', 'is_verified', 'reset_token', 'reset_token_expires'];
+        for (const column of requiredColumns) {
+          if (!existingColumns.includes(column)) {
+            console.log(`Adding missing column: ${column}`);
+            if (column === 'verification_token') {
+              await executeQuery(`ALTER TABLE users ADD COLUMN verification_token TEXT`);
+            } else if (column === 'is_verified') {
+              await executeQuery(`ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0`);
+            } else if (column === 'reset_token') {
+              await executeQuery(`ALTER TABLE users ADD COLUMN reset_token TEXT`);
+            } else if (column === 'reset_token_expires') {
+              await executeQuery(`ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP`);
+            }
+          }
+        }
+      } else {
+        // Create users table if it doesn't exist
+        console.log('Creating users table...');
+        await executeQuery(`
+          CREATE TABLE users (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            phone TEXT,
+            role TEXT DEFAULT 'student',
+            avatar TEXT,
+            is_approved INTEGER DEFAULT 0,
+            approved_by TEXT,
+            approved_at TIMESTAMP,
+            verification_token TEXT,
+            is_verified INTEGER DEFAULT 0,
+            reset_token TEXT,
+            reset_token_expires TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+      }
+    } catch (error) {
+      console.log('Error checking users table, creating new one:', error.message);
+      await executeQuery(`
+        CREATE TABLE users (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          phone TEXT,
+          role TEXT DEFAULT 'student',
+          avatar TEXT,
+          is_approved INTEGER DEFAULT 0,
+          approved_by TEXT,
+          approved_at TIMESTAMP,
+          verification_token TEXT,
+          is_verified INTEGER DEFAULT 0,
+          reset_token TEXT,
+          reset_token_expires TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    }
+
+    // Create other tables with logging
+    console.log('Creating tracks table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS tracks (
         id TEXT PRIMARY KEY,
@@ -76,6 +135,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating courses table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS courses (
         id TEXT PRIMARY KEY,
@@ -95,6 +155,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating roadmap_steps table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS roadmap_steps (
         id TEXT PRIMARY KEY,
@@ -112,6 +173,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating videos table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS videos (
         id TEXT PRIMARY KEY,
@@ -127,6 +189,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating tasks table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -142,6 +205,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating task_submissions table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS task_submissions (
         id TEXT PRIMARY KEY,
@@ -157,6 +221,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating enrollments table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS enrollments (
         id TEXT PRIMARY KEY,
@@ -174,6 +239,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating video_progress table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS video_progress (
         id TEXT PRIMARY KEY,
@@ -187,6 +253,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating payments table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT PRIMARY KEY,
@@ -202,6 +269,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating reviews table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS reviews (
         id TEXT PRIMARY KEY,
@@ -216,6 +284,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating certificates table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS certificates (
         id TEXT PRIMARY KEY,
@@ -229,6 +298,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating notifications table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
@@ -242,6 +312,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating discussions table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS discussions (
         id TEXT PRIMARY KEY,
@@ -256,6 +327,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating articles table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS articles (
         id TEXT PRIMARY KEY,
@@ -275,6 +347,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating article_likes table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_likes (
         id TEXT PRIMARY KEY,
@@ -287,6 +360,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating article_comments table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_comments (
         id TEXT PRIMARY KEY,
@@ -302,6 +376,7 @@ const initializeDatabase = async () => {
       );
     `);
 
+    console.log('Creating article_shares table...');
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_shares (
         id TEXT PRIMARY KEY,
@@ -318,6 +393,7 @@ const initializeDatabase = async () => {
   } catch (error) {
     console.error('Error initializing database:', error);
     console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     throw error;
   }
 };

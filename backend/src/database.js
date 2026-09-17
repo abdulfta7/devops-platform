@@ -397,12 +397,28 @@ const db = {
   async exec(sql) {
     return await executeQuery(sql);
   },
-  async prepare(queryText) {
-    return {
-      get: async (...params) => await db.get(queryText, params),
-      all: async (...params) => await db.all(queryText, params),
-      run: async (...params) => await db.run(queryText, params)
+  prepare(queryText) {
+    console.log('Preparing query:', queryText);
+    const prepared = {
+      queryText: queryText,
+      get: async function(...params) {
+        console.log('Executing get with params:', params);
+        const result = await executeQuery(this.queryText, params);
+        return result.rows[0];
+      },
+      all: async function(...params) {
+        console.log('Executing all with params:', params);
+        const result = await executeQuery(this.queryText, params);
+        return result.rows;
+      },
+      run: async function(...params) {
+        console.log('Executing run with params:', params);
+        const result = await executeQuery(this.queryText, params);
+        return { changes: result.rowCount };
+      }
     };
+    console.log('Prepared object methods:', Object.keys(prepared));
+    return prepared;
   },
   pragma(statement) {
     console.log('Pragma ignored:', statement);

@@ -5,8 +5,7 @@
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
     "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
     "start": "node backend/index.js",
-    "install:all": "cd backend && npm install && cd ../frontend && npm install",
-    "postinstall": "cd backend && npm install && cd ../frontend && npm install"
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

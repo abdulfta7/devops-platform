@@ -30,5 +30,5 @@ module.exports = {
     historyApiFallback: true,
     proxy: [{ context: ['/api', '/uploads'], target: 'http://localhost:5000' }]
   },
-  mode: 'development'
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development'
 };

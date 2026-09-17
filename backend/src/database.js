@@ -21,9 +21,16 @@ const query = async (text, params) => {
   const start = Date.now();
   try {
     const currentPool = getPool();
-    const res = await currentPool.query(text, params);
+    // Convert SQLite style (?) placeholders to PostgreSQL style ($1, $2, etc.)
+    let pgQuery = text;
+    let paramIndex = 1;
+    while (pgQuery.includes('?')) {
+      pgQuery = pgQuery.replace('?', `$${paramIndex}`);
+      paramIndex++;
+    }
+    const res = await currentPool.query(pgQuery, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    console.log('Executed query', { text: pgQuery, duration, rows: res.rowCount });
     return res;
   } catch (error) {
     console.error('Database query error:', error);

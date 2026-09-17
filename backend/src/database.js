@@ -17,7 +17,7 @@ const getPool = () => {
 };
 
 // Helper function to run queries
-const query = async (text, params) => {
+const executeQuery = async (text, params) => {
   const start = Date.now();
   try {
     const currentPool = getPool();
@@ -42,7 +42,7 @@ const query = async (text, params) => {
 const initializeDatabase = async () => {
   try {
     // Create tables
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -58,7 +58,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS tracks (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -71,7 +71,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS courses (
         id TEXT PRIMARY KEY,
         track_id TEXT,
@@ -90,7 +90,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS roadmap_steps (
         id TEXT PRIMARY KEY,
         track_id TEXT NOT NULL,
@@ -107,7 +107,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS videos (
         id TEXT PRIMARY KEY,
         course_id TEXT NOT NULL,
@@ -122,7 +122,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
         course_id TEXT NOT NULL,
@@ -137,7 +137,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS task_submissions (
         id TEXT PRIMARY KEY,
         task_id TEXT NOT NULL,
@@ -152,7 +152,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS enrollments (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -169,7 +169,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS video_progress (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -182,7 +182,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -197,7 +197,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS reviews (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -211,7 +211,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS certificates (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -224,7 +224,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -237,7 +237,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS discussions (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -251,7 +251,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS articles (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -270,7 +270,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_likes (
         id TEXT PRIMARY KEY,
         article_id TEXT NOT NULL,
@@ -282,7 +282,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_comments (
         id TEXT PRIMARY KEY,
         article_id TEXT NOT NULL,
@@ -297,7 +297,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    await query(`
+    await executeQuery(`
       CREATE TABLE IF NOT EXISTS article_shares (
         id TEXT PRIMARY KEY,
         article_id TEXT NOT NULL,
@@ -322,7 +322,7 @@ const seedDatabase = async () => {
     const { v4: uuidv4 } = require('uuid');
 
     // Check if tracks exist
-    const tracksCount = await query('SELECT COUNT(*) as count FROM tracks');
+    const tracksCount = await executeQuery('SELECT COUNT(*) as count FROM tracks');
     if (tracksCount.rows[0].count > 0) {
       console.log('Database already seeded');
       return;
@@ -335,17 +335,17 @@ const seedDatabase = async () => {
     const cloudId = uuidv4();
     const sysadminId = uuidv4();
 
-    await query('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [devopsId, 'DevOps Engineer', 'devops', 'Master CI/CD, Docker, Kubernetes, Jenkins, and modern DevOps practices from zero to hero', '⚙️', '#F59E0B', 1]);
-    await query('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [cloudId, 'Cloud Engineer', 'cloud', 'Master AWS, Azure, GCP and cloud architecture best practices', '☁️', '#3B82F6', 2]);
-    await query('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    await executeQuery('INSERT INTO tracks (id, title, slug, description, icon, color, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [sysadminId, 'System Administrator', 'sysadmin', 'Master Linux, networking, security and system administration', '🖥️', '#10B981', 3]);
 
     // Insert sample courses
     const insertCourse = async (trackId, name, slug, desc, price, free, level, hours, order) => {
       const cid = uuidv4();
-      await query('INSERT INTO courses (id, track_id, title, slug, description, price, is_free, level, duration_hours, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+      await executeQuery('INSERT INTO courses (id, track_id, title, slug, description, price, is_free, level, duration_hours, order_num) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
         [cid, trackId, name, slug, desc, price, free, level, hours, order]);
       return cid;
     };
@@ -376,25 +376,25 @@ const seedDatabase = async () => {
 
 // Database helper functions compatible with SQLite API
 class Database {
-  async prepare(query) {
+  async prepare(queryText) {
     return {
       get: async (...params) => {
-        const result = await query(query, params);
+        const result = await executeQuery(queryText, params);
         return result.rows[0];
       },
       all: async (...params) => {
-        const result = await query(query, params);
+        const result = await executeQuery(queryText, params);
         return result.rows;
       },
       run: async (...params) => {
-        const result = await query(query, params);
+        const result = await executeQuery(queryText, params);
         return { changes: result.rowCount };
       }
     };
   }
 
   async exec(sql) {
-    return await query(sql);
+    return await executeQuery(sql);
   }
 
   pragma(statement) {

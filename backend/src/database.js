@@ -23,6 +23,7 @@ const executeQuery = async (text, params) => {
   const start = Date.now();
   try {
     const currentPool = getPool();
+    console.log('Database pool created:', !!currentPool);
     // Convert SQLite style (?) placeholders to PostgreSQL style ($1, $2, etc.)
     let pgQuery = text;
     let paramIndex = 1;
@@ -30,9 +31,10 @@ const executeQuery = async (text, params) => {
       pgQuery = pgQuery.replace('?', `$${paramIndex}`);
       paramIndex++;
     }
+    console.log('Executing query:', pgQuery, 'with params:', params);
     const res = await currentPool.query(pgQuery, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text: pgQuery, duration, rows: res.rowCount });
+    console.log('Executed query successfully', { text: pgQuery, duration, rows: res.rowCount });
     return res;
   } catch (error) {
     console.error('Database query error:', error);
@@ -43,6 +45,7 @@ const executeQuery = async (text, params) => {
 // Initialize database schema
 const initializeDatabase = async () => {
   try {
+    console.log('Starting database initialization...');
     // Create tables
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS users (
@@ -314,6 +317,7 @@ const initializeDatabase = async () => {
     console.log('Database schema initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
+    console.error('Error details:', error.message);
     throw error;
   }
 };
@@ -379,7 +383,8 @@ const seedDatabase = async () => {
 // Database helper functions compatible with SQLite API
 class Database {
   async prepare(queryText) {
-    const preparedObject = {
+    const self = this;
+    return {
       queryText: queryText,
       get: async function(...params) {
         const result = await executeQuery(this.queryText, params);
@@ -394,7 +399,6 @@ class Database {
         return { changes: result.rowCount };
       }
     };
-    return preparedObject;
   }
 
   async exec(sql) {
@@ -422,9 +426,21 @@ class Database {
 const db = new Database();
 
 // Initialize and seed database (but don't block startup)
-initializeDatabase().then(() => {
-  seedDatabase();
-}).catch(err => {
+let dbInitialized = false;
+const ensureDbInitialized = async () => {
+  if (!dbInitialized) {
+    try {
+      await initializeDatabase();
+      await seedDatabase();
+      dbInitialized = true;
+    } catch (err) {
+      console.error('Database initialization error:', err);
+    }
+  }
+};
+
+// Auto-initialize on module load
+ensureDbInitialized().catch(err => {
   console.error('Database initialization error:', err);
 });
 

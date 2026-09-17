@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx webpack serve --open",
-    "build": "webpack --mode production",
+    "build": "npx webpack --mode production",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -33,7 +33,9 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.3"
+    "react-router-dom": "^7.18.3",
+    "webpack": "^5.110.3",
+    "webpack-cli": "^5.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
@@ -50,8 +52,6 @@
     "jest": "^30.5.1",
     "jest-environment-jsdom": "^30.5.1",
     "style-loader": "^4.0.0",
-    "webpack": "^5.110.3",
-    "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.2.6"
   }
 }

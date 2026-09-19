@@ -2,21 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initializeDatabase, seedDatabase } = require('../backend/src/database');
+const { executeQuery } = require('./database');
 
 // Import routes
-const authRoutes = require('../backend/src/routes/auth');
-const tracksRoutes = require('../backend/src/routes/tracks');
-const coursesRoutes = require('../backend/src/routes/courses');
-const tasksRoutes = require('../backend/src/routes/tasks');
-const paymentsRoutes = require('../backend/src/routes/payments');
-const adminRoutes = require('../backend/src/routes/admin');
-const liveRoutes = require('../backend/src/routes/live');
-const reviewsRoutes = require('../backend/src/routes/reviews');
-const certificatesRoutes = require('../backend/src/routes/certificates');
-const notificationsRoutes = require('../backend/src/routes/notifications');
-const searchRoutes = require('../backend/src/routes/search');
-const articlesRoutes = require('../backend/src/routes/articles');
+const authRoutes = require('./auth');
+const tracksRoutes = require('./tracks');
+const coursesRoutes = require('./courses');
+const tasksRoutes = require('./tasks');
+const paymentsRoutes = require('./payments');
+const adminRoutes = require('./admin');
+const liveRoutes = require('./live');
+const reviewsRoutes = require('./reviews');
+const certificatesRoutes = require('./certificates');
+const notificationsRoutes = require('./notifications');
+const searchRoutes = require('./search');
+const articlesRoutes = require('./articles');
 
 const app = express();
 
@@ -78,8 +78,8 @@ const ensureDbInitialized = async () => {
   if (!dbInitialized) {
     try {
       console.log('Initializing database...');
-      await initializeDatabase();
-      await seedDatabase();
+      // Test database connection
+      await executeQuery('SELECT 1');
       dbInitialized = true;
       console.log('Database initialized successfully');
     } catch (err) {

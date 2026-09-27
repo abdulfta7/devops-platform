@@ -5,48 +5,7 @@ const { executeQuery } = require('./database');
 const { authenticate, isAdmin } = require('./middleware/auth');
 
 // ── ensure tables exist ────────────────────────────────────────────────────
-(async () => {
-  try {
-    await executeQuery(`
-      CREATE TABLE IF NOT EXISTS live_courses (
-        id           TEXT PRIMARY KEY,
-        title        TEXT NOT NULL,
-        slug         TEXT UNIQUE NOT NULL,
-        description  TEXT,
-        details      TEXT,
-        instructor   TEXT,
-        price        REAL DEFAULT 0,
-        currency     TEXT DEFAULT 'EGP',
-        start_date   TEXT,
-        schedule     TEXT,
-        duration     TEXT,
-        seats        INTEGER DEFAULT 0,
-        is_open      INTEGER DEFAULT 1,
-        is_published INTEGER DEFAULT 1,
-        cover_emoji  TEXT DEFAULT '🎓',
-        created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    await executeQuery(`
-      CREATE TABLE IF NOT EXISTS live_registrations (
-        id          TEXT PRIMARY KEY,
-        course_id   TEXT NOT NULL,
-        name        TEXT NOT NULL,
-        email       TEXT NOT NULL,
-        phone       TEXT NOT NULL,
-        age         TEXT,
-        experience  TEXT,
-        note        TEXT,
-        status      TEXT DEFAULT 'pending',
-        registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES live_courses(id)
-      );
-    `);
-  } catch (error) {
-    console.error('Error creating live courses tables:', error);
-  }
-})();
+// Tables will be created by the main database initialization in database.js
 
 // ── PUBLIC ─────────────────────────────────────────────────────────────────
 

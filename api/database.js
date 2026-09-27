@@ -445,6 +445,53 @@ const initializeDatabase = async () => {
       console.log('Error creating article_shares table:', error.message);
     }
 
+    try {
+      console.log('Creating live_courses table...');
+      await executeQuery(`
+      CREATE TABLE IF NOT EXISTS live_courses (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT UNIQUE NOT NULL,
+        description TEXT,
+        details TEXT,
+        instructor TEXT,
+        price REAL DEFAULT 0,
+        currency TEXT DEFAULT 'EGP',
+        start_date TEXT,
+        schedule TEXT,
+        duration TEXT,
+        seats INTEGER DEFAULT 0,
+        is_open INTEGER DEFAULT 1,
+        is_published INTEGER DEFAULT 1,
+        cover_emoji TEXT DEFAULT '🎓',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    } catch (error) {
+      console.log('Error creating live_courses table:', error.message);
+    }
+
+    try {
+      console.log('Creating live_registrations table...');
+      await executeQuery(`
+      CREATE TABLE IF NOT EXISTS live_registrations (
+        id TEXT PRIMARY KEY,
+        course_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        age TEXT,
+        experience TEXT,
+        note TEXT,
+        status TEXT DEFAULT 'pending',
+        registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES live_courses(id)
+      );
+    `);
+    } catch (error) {
+      console.log('Error creating live_registrations table:', error.message);
+    }
+
     console.log('Database schema initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
@@ -596,9 +643,12 @@ const ensureDbInitialized = async () => {
   }
 };
 
-// Auto-initialize on module load
-ensureDbInitialized().catch(err => {
-  console.error('Database initialization error:', err);
-});
+// Auto-initialize on module load (only in production or if DATABASE_URL is set)
+// Disabled for development due to connection issues
+// if (process.env.DATABASE_URL) {
+//   ensureDbInitialized().catch(err => {
+//     console.error('Database initialization error:', err);
+//   });
+// }
 
 module.exports = db;

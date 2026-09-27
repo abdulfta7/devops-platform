@@ -12,12 +12,6 @@
       "destination": "/index.html"
     }
   ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30,
-      "memory": 1024
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
